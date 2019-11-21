@@ -1,0 +1,762 @@
+##5-Multiple and Logistic Regression in R
+#chap-1-Parallel Slopes
+> str(mario_kart)
+'data.frame':	141 obs. of  12 variables:
+ $ ID        : num  1.5e+11 2.6e+11 3.2e+11 2.8e+11 1.7e+11 ...
+ $ duration  : int  3 7 3 3 1 3 1 1 3 7 ...
+ $ nBids     : int  20 13 16 18 20 19 13 15 29 8 ...
+ $ cond      : Factor w/ 2 levels "new","used": 1 2 1 1 1 1 2 1 2 2 ...
+ $ startPr   : num  0.99 0.99 0.99 0.99 0.01 ...
+ $ shipPr    : num  4 3.99 3.5 0 0 4 0 2.99 4 4 ...
+ $ totalPr   : num  51.5 37 45.5 44 71 ...
+ $ shipSp    : Factor w/ 8 levels "firstClass","media",..: 6 1 1 6 2 6 6 8 5 1 ...
+ $ sellerRate: int  1580 365 998 7 820 270144 7284 4858 27 201 ...
+ $ stockPhoto: Factor w/ 2 levels "no","yes": 2 2 1 2 2 2 2 2 2 1 ...
+ $ wheels    : int  1 1 1 1 2 0 0 2 1 1 ...
+ $ title     : Factor w/ 80 levels " Mario Kart Wii with Wii Wheel for Wii (New)",..: 80 60 22 7 4 19 34 5 79 70 ...
+> 
+> # fit parallel slopes
+> lm(totalPr~wheels+cond,data=mario_kart)
+
+Call:
+lm(formula = totalPr ~ wheels + cond, data = mario_kart)
+
+Coefficients:
+(Intercept)       wheels     condused  
+     42.370        7.233       -5.585
+> > # Augment the model
+> augmented_mod <- augment(mod)
+> glimpse(augmented_mod)
+Observations: 141
+Variables: 10
+$ totalPr    <dbl> 51.55, 37.04, 45.50, 44.00, 71.00, 45.00, 37.02, 53.99, ...
+$ wheels     <int> 1, 1, 1, 1, 2, 0, 0, 2, 1, 1, 2, 2, 2, 2, 1, 0, 1, 1, 2,...
+$ cond       <fct> new, used, new, new, new, new, used, new, used, used, ne...
+$ .fitted    <dbl> 49.60260, 44.01777, 49.60260, 49.60260, 56.83544, 42.369...
+$ .se.fit    <dbl> 0.7087865, 0.5465195, 0.7087865, 0.7087865, 0.6764502, 1...
+$ .resid     <dbl> 1.9473995, -6.9777674, -4.1026005, -5.6026005, 14.164559...
+$ .hat       <dbl> 0.02103158, 0.01250410, 0.02103158, 0.02103158, 0.019156...
+$ .sigma     <dbl> 4.902339, 4.868399, 4.892414, 4.881308, 4.750591, 4.8998...
+$ .cooksd    <dbl> 1.161354e-03, 8.712334e-03, 5.154337e-03, 9.612441e-03, ...
+$ .std.resid <dbl> 0.40270893, -1.43671086, -0.84838977, -1.15857953, 2.926...
+> 
+> # scatterplot, with color
+> data_space <- ggplot(augmented_mod, aes(x = wheels, y = totalPr, color = cond)) + 
+    geom_point()
+> 
+> # single call to geom_line()
+> data_space + 
+    geom_line(aes(y = .fitted))
+> > # build model
+> lm(bwt~ age+parity,babies)
+
+Call:
+lm(formula = bwt ~ age + parity, data = babies)
+
+Coefficients:
+(Intercept)          age       parity  
+  118.27782      0.06315     -1.65248
+  > # build model
+> lm(bwt~gestation+smoke,babies)
+
+Call:
+lm(formula = bwt ~ gestation + smoke, data = babies)
+
+Coefficients:
+(Intercept)    gestation        smoke  
+    -0.9317       0.4429      -8.0883
+##chapter2-Model fit, residuals, and prediction
+R-squared vs. adjusted R-squared
+Two common measures of how well a model fits to data are R2 (the coefficient of determination) and the adjusted R2. The former measures the percentage of the variability in the response variable that is explained by the model. To compute this, we define
+R2=1−SSESST,
+where SSE and SST are the sum of the squared residuals, and the total sum of the squares, respectively. One issue with this measure is that the SSE can only decrease as new variable are added to the model, while the SST depends only on the response variable and therefore is not affected by changes to the model. This means that you can increase R2 by adding any additional variable to your model—even random noise.
+
+The adjusted R2 includes a term that penalizes a model for each additional explanatory variable (where p is the number of explanatory variables).
+R2adj=1−SSESST⋅n−1n−p−1,
+We can see both measures in the output of the summary() function on our model object.
+> # R^2 and adjusted R^2
+> summary(mod)
+
+Call:
+lm(formula = totalPr ~ wheels + cond, data = mario_kart)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-11.0078  -3.0754  -0.8254   2.9822  14.1646 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  42.3698     1.0651  39.780  < 2e-16 ***
+wheels        7.2328     0.5419  13.347  < 2e-16 ***
+condused     -5.5848     0.9245  -6.041 1.35e-08 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 4.887 on 138 degrees of freedom
+Multiple R-squared:  0.7165,	Adjusted R-squared:  0.7124 
+F-statistic: 174.4 on 2 and 138 DF,  p-value: < 2.2e-16
+> 
+> # add random noise
+> mario_kart_noisy <- mutate(mario_kart,noise=rnorm(141))
+> 
+> # compute new model
+> mod2 <- lm(totalPr ~ wheels + cond+noise,mario_kart_noisy)
+> 
+> # new R^2 and adjusted R^2
+> summary(mod2)
+
+Call:
+lm(formula = totalPr ~ wheels + cond + noise, data = mario_kart_noisy)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-9.4903 -3.1189 -0.5744  2.7957 14.5293 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  42.7991     1.0666  40.126  < 2e-16 ***
+wheels        7.0125     0.5428  12.919  < 2e-16 ***
+condused     -5.7974     0.9159  -6.330 3.26e-09 ***
+noise        -1.0724     0.4742  -2.262   0.0253 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 4.816 on 137 degrees of freedom
+Multiple R-squared:  0.7267,	Adjusted R-squared:  0.7207 
+F-statistic: 121.4 on 3 and 137 DF,  p-value: < 2.2e-16
+> > # return a vector
+> predict(mod)
+       1        2        3        4        5        6        7        8 
+49.60260 44.01777 49.60260 49.60260 56.83544 42.36976 36.78493 56.83544 
+       9       10       11       12       13       14       15       16 
+44.01777 44.01777 56.83544 56.83544 56.83544 56.83544 44.01777 36.78493 
+      17       18       19       20       21       22       23       24 
+49.60260 49.60260 56.83544 36.78493 56.83544 56.83544 56.83544 44.01777 
+      25       26       27       28       29       30       31       32 
+56.83544 36.78493 36.78493 36.78493 49.60260 36.78493 36.78493 44.01777 
+      33       34       35       36       37       38       39       40 
+51.25061 44.01777 44.01777 36.78493 44.01777 56.83544 56.83544 49.60260 
+      41       42       43       44       45       46       47       48 
+44.01777 51.25061 56.83544 56.83544 44.01777 56.83544 36.78493 36.78493 
+      49       50       51       52       53       54       55       56 
+44.01777 56.83544 36.78493 44.01777 42.36976 36.78493 36.78493 44.01777 
+      57       58       59       60       61       62       63       64 
+44.01777 36.78493 36.78493 56.83544 36.78493 56.83544 36.78493 51.25061 
+      65       66       67       68       69       70       71       72 
+56.83544 44.01777 58.48345 51.25061 49.60260 44.01777 49.60260 56.83544 
+      73       74       75       76       77       78       79       80 
+56.83544 51.25061 44.01777 36.78493 36.78493 36.78493 44.01777 56.83544 
+      81       82       83       84       85       86       87       88 
+44.01777 65.71629 44.01777 56.83544 36.78493 49.60260 49.60260 36.78493 
+      89       90       91       92       93       94       95       96 
+44.01777 36.78493 51.25061 44.01777 36.78493 51.25061 42.36976 56.83544 
+      97       98       99      100      101      102      103      104 
+51.25061 44.01777 51.25061 56.83544 56.83544 56.83544 36.78493 49.60260 
+     105      106      107      108      109      110      111      112 
+51.25061 44.01777 56.83544 49.60260 36.78493 44.01777 51.25061 56.83544 
+     113      114      115      116      117      118      119      120 
+64.06828 44.01777 49.60260 44.01777 49.60260 51.25061 42.36976 44.01777 
+     121      122      123      124      125      126      127      128 
+56.83544 44.01777 49.60260 44.01777 51.25061 56.83544 56.83544 49.60260 
+     129      130      131      132      133      134      135      136 
+56.83544 36.78493 44.01777 44.01777 36.78493 56.83544 36.78493 44.01777 
+     137      138      139      140      141 
+36.78493 51.25061 49.60260 36.78493 56.83544
+> 
+> # return a data frame
+> augment(mod)
+    totalPr wheels cond  .fitted   .se.fit       .resid       .hat   .sigma
+1     51.55      1  new 49.60260 0.7087865   1.94739955 0.02103158 4.902339
+2     37.04      1 used 44.01777 0.5465195  -6.97776738 0.01250410 4.868399
+3     45.50      1  new 49.60260 0.7087865  -4.10260045 0.02103158 4.892414
+4     44.00      1  new 49.60260 0.7087865  -5.60260045 0.02103158 4.881308
+5     71.00      2  new 56.83544 0.6764502  14.16455915 0.01915635 4.750591
+6     45.00      0  new 42.36976 1.0651119   2.63023994 0.04749321 4.899816
+7     37.02      0 used 36.78493 0.7065565   0.23507301 0.02089945 4.905181
+8     53.99      2  new 56.83544 0.6764502  -2.84544085 0.01915635 4.899077
+9     47.00      1 used 44.01777 0.5465195   2.98223262 0.01250410 4.898517
+10    50.00      1 used 44.01777 0.5465195   5.98223262 0.01250410 4.878184
+11    54.99      2  new 56.83544 0.6764502  -1.84544085 0.01915635 4.902639
+12    56.01      2  new 56.83544 0.6764502  -0.82544085 0.01915635 4.904706
+13    48.00      2  new 56.83544 0.6764502  -8.83544085 0.01915635 4.845644
+14    56.00      2  new 56.83544 0.6764502  -0.83544085 0.01915635 4.904693
+15    43.33      1 used 44.01777 0.5465195  -0.68776738 0.01250410 4.904866
+16    46.00      0 used 36.78493 0.7065565   9.21507301 0.02089945 4.840263
+17    46.71      1  new 49.60260 0.7087865  -2.89260045 0.02103158 4.898859
+18    46.00      1  new 49.60260 0.7087865  -3.60260045 0.02103158 4.895349
+19    55.99      2  new 56.83544 0.6764502  -0.84544085 0.01915635 4.904680
+20    31.00      0 used 36.78493 0.7065565  -5.78492699 0.02089945 4.879726
+21    53.98      2  new 56.83544 0.6764502  -2.85544085 0.01915635 4.899034
+22    64.95      2  new 56.83544 0.6764502   8.11455915 0.01915635 4.855017
+23    50.50      2  new 56.83544 0.6764502  -6.33544085 0.01915635 4.874681
+24    46.50      1 used 44.01777 0.5465195   2.48223262 0.01250410 4.900578
+25    55.00      2  new 56.83544 0.6764502  -1.83544085 0.01915635 4.902666
+26    34.50      0 used 36.78493 0.7065565  -2.28492699 0.02089945 4.901254
+27    36.00      0 used 36.78493 0.7065565  -0.78492699 0.02089945 4.904754
+28    40.00      0 used 36.78493 0.7065565   3.21507301 0.02089945 4.897361
+29    47.00      1  new 49.60260 0.7087865  -2.60260045 0.02103158 4.900072
+30    43.00      0 used 36.78493 0.7065565   6.21507301 0.02089945 4.875781
+31    31.00      0 used 36.78493 0.7065565  -5.78492699 0.02089945 4.879726
+32    41.99      1 used 44.01777 0.5465195  -2.02776738 0.01250410 4.902124
+33    49.49      2 used 51.25061 0.8279109  -1.76060777 0.02869514 4.902848
+34    41.00      1 used 44.01777 0.5465195  -3.01776738 0.01250410 4.898356
+35    44.78      1 used 44.01777 0.5465195   0.76223262 0.01250410 4.904785
+36    47.00      0 used 36.78493 0.7065565  10.21507301 0.02089945 4.825276
+37    44.00      1 used 44.01777 0.5465195  -0.01776738 0.01250410 4.905222
+38    63.99      2  new 56.83544 0.6764502   7.15455915 0.01915635 4.866239
+39    53.76      2  new 56.83544 0.6764502  -3.07544085 0.01915635 4.898043
+40    46.03      1  new 49.60260 0.7087865  -3.57260045 0.02103158 4.895513
+41    42.25      1 used 44.01777 0.5465195  -1.76776738 0.01250410 4.902867
+42    46.00      2 used 51.25061 0.8279109  -5.25060777 0.02869514 4.884059
+43    51.99      2  new 56.83544 0.6764502  -4.84544085 0.01915635 4.887380
+44    55.99      2  new 56.83544 0.6764502  -0.84544085 0.01915635 4.904680
+45    41.99      1 used 44.01777 0.5465195  -2.02776738 0.01250410 4.902124
+46    53.99      2  new 56.83544 0.6764502  -2.84544085 0.01915635 4.899077
+47    39.00      0 used 36.78493 0.7065565   2.21507301 0.02089945 4.901493
+48    38.06      0 used 36.78493 0.7065565   1.27507301 0.02089945 4.903987
+49    46.00      1 used 44.01777 0.5465195   1.98223262 0.01250410 4.902261
+50    59.88      2  new 56.83544 0.6764502   3.04455915 0.01915635 4.898186
+51    28.98      0 used 36.78493 0.7065565  -7.80492699 0.02089945 4.858711
+52    36.00      1 used 44.01777 0.5465195  -8.01776738 0.01250410 4.856546
+53    51.99      0  new 42.36976 1.0651119   9.62023994 0.04749321 4.832389
+54    43.95      0 used 36.78493 0.7065565   7.16507301 0.02089945 4.866054
+55    32.00      0 used 36.78493 0.7065565  -4.78492699 0.02089945 4.887793
+56    40.06      1 used 44.01777 0.5465195  -3.95776738 0.01250410 4.893406
+57    48.00      1 used 44.01777 0.5465195   3.98223262 0.01250410 4.893260
+58    36.00      0 used 36.78493 0.7065565  -0.78492699 0.02089945 4.904754
+59    31.00      0 used 36.78493 0.7065565  -5.78492699 0.02089945 4.879726
+60    53.99      2  new 56.83544 0.6764502  -2.84544085 0.01915635 4.899077
+61    30.00      0 used 36.78493 0.7065565  -6.78492699 0.02089945 4.870114
+62    58.00      2  new 56.83544 0.6764502   1.16455915 0.01915635 4.904194
+63    38.10      0 used 36.78493 0.7065565   1.31507301 0.02089945 4.903908
+64    61.76      2 used 51.25061 0.8279109  10.50939223 0.02869514 4.819876
+65    53.99      2  new 56.83544 0.6764502  -2.84544085 0.01915635 4.899077
+66    40.00      1 used 44.01777 0.5465195  -4.01776738 0.01250410 4.893045
+67    64.50      3 used 58.48345 1.2882085   6.01655183 0.06947257 4.876193
+68    49.01      2 used 51.25061 0.8279109  -2.24060777 0.02869514 4.901375
+69    47.00      1  new 49.60260 0.7087865  -2.60260045 0.02103158 4.900072
+70    40.10      1 used 44.01777 0.5465195  -3.91776738 0.01250410 4.893644
+71    41.50      1  new 49.60260 0.7087865  -8.10260045 0.02103158 4.855070
+72    56.00      2  new 56.83544 0.6764502  -0.83544085 0.01915635 4.904693
+73    64.95      2  new 56.83544 0.6764502   8.11455915 0.01915635 4.855017
+74    49.00      2 used 51.25061 0.8279109  -2.25060777 0.02869514 4.901341
+75    48.00      1 used 44.01777 0.5465195   3.98223262 0.01250410 4.893260
+76    38.00      0 used 36.78493 0.7065565   1.21507301 0.02089945 4.904101
+77    45.00      0 used 36.78493 0.7065565   8.21507301 0.02089945 4.853667
+78    41.95      0 used 36.78493 0.7065565   5.16507301 0.02089945 4.884908
+79    43.36      1 used 44.01777 0.5465195  -0.65776738 0.01250410 4.904897
+80    54.99      2  new 56.83544 0.6764502  -1.84544085 0.01915635 4.902639
+81    45.21      1 used 44.01777 0.5465195   1.19223262 0.01250410 4.904152
+82    65.02      4 used 65.71629 1.7946635  -0.69628856 0.13483640 4.904806
+83    45.75      1 used 44.01777 0.5465195   1.73223262 0.01250410 4.902961
+84    64.00      2  new 56.83544 0.6764502   7.16455915 0.01915635 4.866129
+85    36.00      0 used 36.78493 0.7065565  -0.78492699 0.02089945 4.904754
+86    54.70      1  new 49.60260 0.7087865   5.09739955 0.02103158 4.885435
+87    49.91      1  new 49.60260 0.7087865   0.30739955 0.02103158 4.905151
+88    47.00      0 used 36.78493 0.7065565  10.21507301 0.02089945 4.825276
+89    43.00      1 used 44.01777 0.5465195  -1.01776738 0.01250410 4.904442
+90    35.99      0 used 36.78493 0.7065565  -0.79492699 0.02089945 4.904742
+91    54.49      2 used 51.25061 0.8279109   3.23939223 0.02869514 4.897178
+92    46.00      1 used 44.01777 0.5465195   1.98223262 0.01250410 4.902261
+93    31.06      0 used 36.78493 0.7065565  -5.72492699 0.02089945 4.880253
+94    55.60      2 used 51.25061 0.8279109   4.34939223 0.02869514 4.890710
+95    40.10      0  new 42.36976 1.0651119  -2.26976006 0.04749321 4.901197
+96    52.59      2  new 56.83544 0.6764502  -4.24544085 0.01915635 4.891531
+97    44.00      2 used 51.25061 0.8279109  -7.25060777 0.02869514 4.864786
+98    38.26      1 used 44.01777 0.5465195  -5.75776738 0.01250410 4.880180
+99    51.00      2 used 51.25061 0.8279109  -0.25060777 0.02869514 4.905174
+100   48.99      2  new 56.83544 0.6764502  -7.84544085 0.01915635 4.858308
+101   66.44      2  new 56.83544 0.6764502   9.60455915 0.01915635 4.834741
+102   63.50      2  new 56.83544 0.6764502   6.66455915 0.01915635 4.871414
+103   42.00      0 used 36.78493 0.7065565   5.21507301 0.02089945 4.884512
+104   47.00      1  new 49.60260 0.7087865  -2.60260045 0.02103158 4.900072
+105   55.00      2 used 51.25061 0.8279109   3.74939223 0.02869514 4.894442
+106   33.01      1 used 44.01777 0.5465195 -11.00776738 0.01250410 4.813060
+107   53.76      2  new 56.83544 0.6764502  -3.07544085 0.01915635 4.898043
+108   46.00      1  new 49.60260 0.7087865  -3.60260045 0.02103158 4.895349
+109   43.00      0 used 36.78493 0.7065565   6.21507301 0.02089945 4.875781
+110   42.55      1 used 44.01777 0.5465195  -1.46776738 0.01250410 4.903599
+111   52.50      2 used 51.25061 0.8279109   1.24939223 0.02869514 4.904027
+112   57.50      2  new 56.83544 0.6764502   0.66455915 0.01915635 4.904888
+113   75.00      3  new 64.06828 1.0000415  10.93171876 0.04186751 4.811529
+114   48.92      1 used 44.01777 0.5465195   4.90223262 0.01250410 4.887082
+115   45.99      1  new 49.60260 0.7087865  -3.61260045 0.02103158 4.895294
+116   40.05      1 used 44.01777 0.5465195  -3.96776738 0.01250410 4.893346
+117   45.00      1  new 49.60260 0.7087865  -4.60260045 0.02103158 4.889096
+118   50.00      2 used 51.25061 0.8279109  -1.25060777 0.02869514 4.904024
+119   49.75      0  new 42.36976 1.0651119   7.38023994 0.04749321 4.862490
+120   47.00      1 used 44.01777 0.5465195   2.98223262 0.01250410 4.898517
+121   56.00      2  new 56.83544 0.6764502  -0.83544085 0.01915635 4.904693
+122   41.00      1 used 44.01777 0.5465195  -3.01776738 0.01250410 4.898356
+123   46.00      1  new 49.60260 0.7087865  -3.60260045 0.02103158 4.895349
+124   34.99      1 used 44.01777 0.5465195  -9.02776738 0.01250410 4.843427
+125   49.00      2 used 51.25061 0.8279109  -2.25060777 0.02869514 4.901341
+126   61.00      2  new 56.83544 0.6764502   4.16455915 0.01915635 4.892049
+127   62.89      2  new 56.83544 0.6764502   6.05455915 0.01915635 4.877336
+128   46.00      1  new 49.60260 0.7087865  -3.60260045 0.02103158 4.895349
+129   64.95      2  new 56.83544 0.6764502   8.11455915 0.01915635 4.855017
+130   36.99      0 used 36.78493 0.7065565   0.20507301 0.02089945 4.905191
+131   44.00      1 used 44.01777 0.5465195  -0.01776738 0.01250410 4.905222
+132   41.35      1 used 44.01777 0.5465195  -2.66776738 0.01250410 4.899857
+133   37.00      0 used 36.78493 0.7065565   0.21507301 0.02089945 4.905187
+134   58.98      2  new 56.83544 0.6764502   2.14455915 0.01915635 4.901733
+135   39.00      0 used 36.78493 0.7065565   2.21507301 0.02089945 4.901493
+136   40.70      1 used 44.01777 0.5465195  -3.31776738 0.01250410 4.896922
+137   39.51      0 used 36.78493 0.7065565   2.72507301 0.02089945 4.899576
+138   52.00      2 used 51.25061 0.8279109   0.74939223 0.02869514 4.904792
+139   47.70      1  new 49.60260 0.7087865  -1.90260045 0.02103158 4.902471
+140   38.76      0 used 36.78493 0.7065565   1.97507301 0.02089945 4.902257
+141   54.51      2  new 56.83544 0.6764502  -2.32544085 0.01915635 4.901119
+         .cooksd   .std.resid
+1   1.161354e-03  0.402708933
+2   8.712334e-03 -1.436710863
+3   5.154337e-03 -0.848389768
+4   9.612441e-03 -1.158579529
+5   5.574926e-02  2.926332759
+6   5.053659e-03  0.551419180
+7   1.681147e-05  0.048608215
+8   2.249739e-03 -0.587854989
+9   1.591419e-03  0.614036807
+10  6.403658e-03  1.231731888
+11  9.463096e-04 -0.381259589
+12  1.893237e-04 -0.170532281
+13  2.169149e-02 -1.825361432
+14  1.939387e-04 -0.172598235
+15  8.464177e-05 -0.141610176
+16  2.583436e-02  1.905485609
+17  2.562308e-03 -0.598170028
+18  3.974537e-03 -0.744993181
+19  1.986092e-04 -0.174664189
+20  1.018113e-02 -1.196202689
+21  2.265580e-03 -0.589920943
+22  1.829628e-02  1.676430592
+23  1.115287e-02 -1.308872933
+24  1.102520e-03  0.511087627
+25  9.360817e-04 -0.379193635
+26  1.588345e-03 -0.472475419
+27  1.874384e-04 -0.162306590
+28  3.144719e-03  0.664810290
+29  2.074290e-03 -0.538200007
+30  1.175148e-02  1.285147949
+31  1.018113e-02 -1.196202689
+32  7.357628e-04 -0.417513979
+33  1.315656e-03 -0.365515142
+34  1.629570e-03 -0.621353356
+35  1.039625e-04  0.156942447
+36  3.174557e-02  2.112264829
+37  5.648698e-08 -0.003658274
+38  1.422325e-02  1.478099008
+39  2.628135e-03 -0.635371930
+40  3.908619e-03 -0.738789386
+41  5.591802e-04 -0.363980405
+42  1.170136e-02 -1.090064849
+43  6.523784e-03 -1.001045788
+44  1.986092e-04 -0.174664189
+45  7.357628e-04 -0.417513979
+46  2.249739e-03 -0.587854989
+47  1.492713e-03  0.458031070
+48  4.946184e-04  0.263658603
+49  7.030898e-04  0.408138446
+50  2.575620e-03  0.628991915
+51  1.853266e-02 -1.613896713
+52  1.150293e-02 -1.650845158
+53  6.760627e-02  2.016844445
+54  1.561857e-02  1.481588208
+55  6.965475e-03 -0.989423469
+56  2.802864e-03 -0.814897814
+57  2.837624e-03  0.819935167
+58  1.874384e-04 -0.162306590
+59  1.018113e-02 -1.196202689
+60  2.249739e-03 -0.587854989
+61  1.400524e-02 -1.402981909
+62  3.768392e-04  0.240592564
+63  5.261382e-04  0.271929772
+64  4.687834e-02  2.181827236
+65  2.249739e-03 -0.587854989
+66  2.888492e-03 -0.827251716
+67  4.052940e-02  1.276155547
+68  2.130829e-03 -0.465166678
+69  2.074290e-03 -0.538200007
+70  2.746495e-03 -0.806661880
+71  2.010496e-02 -1.675562463
+72  1.939387e-04 -0.172598235
+73  1.829628e-02  1.676430592
+74  2.149892e-03 -0.467242751
+75  2.837624e-03  0.819935167
+76  4.491639e-04  0.251251850
+77  2.053161e-02  1.698706389
+78  8.116206e-03  1.068029769
+79  7.741876e-05 -0.135433225
+80  9.463096e-04 -0.381259589
+81  2.543452e-04  0.245478742
+82  1.218734e-03 -0.153165404
+83  5.369254e-04  0.356663856
+84  1.426303e-02  1.480164962
+85  1.874384e-04 -0.162306590
+86  7.957044e-03  1.054107431
+87  2.893749e-05  0.063568128
+88  3.174557e-02  2.112264829
+89  1.853526e-04 -0.209556635
+90  1.922448e-04 -0.164374382
+91  4.453937e-03  0.672521687
+92  7.030898e-04  0.408138446
+93  9.971030e-03 -1.183795936
+94  8.029235e-03  0.902965863
+95  3.763354e-03 -0.475846028
+96  5.008164e-03 -0.877088548
+97  2.231340e-02 -1.505279580
+98  5.932118e-03 -1.185514863
+99  2.665668e-05 -0.052028020
+100 1.710282e-02 -1.620831987
+101 2.563232e-02  1.984257737
+102 1.234172e-02  1.376867262
+103 8.274103e-03  1.078368730
+104 2.074290e-03 -0.538200007
+105 5.966763e-03  0.778401443
+106 2.168204e-02 -2.266481255
+107 2.628135e-03 -0.635371930
+108 3.974537e-03 -0.744993181
+109 1.175148e-02  1.285147949
+110 3.854926e-04 -0.302210897
+111 6.625438e-04  0.259383029
+112 1.227157e-04  0.137294864
+113 7.605411e-02  2.285052621
+114 4.300207e-03  1.009361659
+115 3.996633e-03 -0.747061113
+116 2.817046e-03 -0.816956798
+117 6.487255e-03 -0.951786355
+118 6.638336e-04 -0.259635386
+119 3.978837e-02  1.547237493
+120 1.591419e-03  0.614036807
+121 1.939387e-04 -0.172598235
+122 1.629570e-03 -0.621353356
+123 3.974537e-03 -0.744993181
+124 1.458352e-02 -1.858802502
+125 2.149892e-03 -0.467242751
+126 4.819157e-03  0.860378763
+127 1.018587e-02  1.250844068
+128 3.974537e-03 -0.744993181
+129 1.829628e-02  1.676430592
+130 1.279432e-05  0.042404838
+131 5.648698e-08 -0.003658274
+132 1.273496e-03 -0.549288929
+133 1.407252e-05  0.044472630
+134 1.277936e-03  0.443056056
+135 1.492713e-03  0.458031070
+136 1.969670e-03 -0.683122864
+137 2.259209e-03  0.563488472
+138 2.383611e-04  0.155579346
+139 1.108535e-03 -0.393444786
+140 1.186770e-03  0.408404057
+141 1.502601e-03 -0.480425381
+> > # include interaction
+> lm(totalPr~cond+duration+cond:duration,mario_kart)
+
+Call:
+lm(formula = totalPr ~ cond + duration + cond:duration, data = mario_kart)
+
+Coefficients:
+      (Intercept)           condused           duration  condused:duration  
+           58.268            -17.122             -1.966              2.325
+>  # interaction plot
+> ggplot(mario_kart, aes(y = totalPr, x = duration, color = cond)) + 
+    geom_point() + 
+    geom_smooth(method = "lm", se = FALSE)
+> > slr <- ggplot(mario_kart, aes(y = totalPr, x = duration)) + 
+    geom_point() + 
+    geom_smooth(method = "lm", se = FALSE)
+> 
+> # model with one slope
+> lm(totalPr~duration,mario_kart)
+
+Call:
+lm(formula = totalPr ~ duration, data = mario_kart)
+
+Coefficients:
+(Intercept)     duration  
+     52.374       -1.317
+> 
+> # plot with two slopes
+> slr + aes(color=cond)
+## chapter3-Multiple Regression
+> # Fit the model using duration and startPr
+> lm(totalPr~duration+startPr,mario_kart)
+
+Call:
+lm(formula = totalPr ~ duration + startPr, data = mario_kart)
+
+Coefficients:
+(Intercept)     duration      startPr  
+     51.030       -1.508        0.233
+> # add predictions to grid
+> price_hats <- augment(mod, newdata = grid)
+> 
+> # tile the plane
+> data_space + 
+    geom_tile(data = price_hats, aes(fill = .fitted), alpha = 0.5)
+> > # draw the 3D scatterplot
+> p <- plot_ly(data = mario_kart, z = ~totalPr, x = ~duration, y = ~startPr, opacity = 0.6) %>%
+    add_markers()
+> 
+> # draw the plane
+> p %>%
+    add_surface(x = ~x, y = ~y, z = ~plane, showscale = FALSE)
+> > # draw the 3D scatterplot
+> p <- plot_ly(data = mario_kart, z = ~totalPr, x = ~duration, y = ~startPr, opacity = 0.6) %>%
+    add_markers(color = ~cond)
+> 
+> # draw two planes
+> p %>%
+    add_surface(x = ~x, y = ~y, z = ~plane0, showscale = FALSE) %>%
+    add_surface(x = ~x, y = ~y, z = ~plane1, showscale = FALSE)
+> Interpretation of coefficient in a big model
+This time we have thrown even more variables into our model, including the number of bids in each auction (nBids) and the number of wheels. Unfortunately this makes a full visualization of our model impossible, but we can still interpret the coefficients.
+
+Call:
+lm(formula = totalPr ~ duration + startPr + cond + wheels + nBids, 
+    data = mario_kart)
+
+Coefficients:
+(Intercept)     duration      startPr     condused       wheels  
+    39.3741      -0.2752       0.1796      -4.7720       6.7216  
+      nBids  
+     0.1909  
+Choose the correct interpretation of the coefficient on the number of wheels:
+
+Answer the question
+50 XP
+Possible Answers
+The average number of wheels is 6.72.
+press
+1
+Each additional wheel costs exactly $6.72.
+press
+2
+Each additional wheel is associated with an increase in the expected auction price of $6.72.
+press
+3
+Each additional wheel is associated with an increase in the expected auction price of $6.72, after controlling for auction duration, starting price, number of bids, and the condition of the item.
+press
+4
+##chap-4-logistic regression
+ # scatterplot with jitter
+> data_space <- ggplot(MedGPA,aes(x=GPA,y=Acceptance)) + 
+    geom_jitter(width = 0, height = 0.05, alpha = 0.5)
+> 
+> # linear regression line
+> data_space + 
+   geom_smooth(method="lm",se=0)
+> > # filter
+> MedGPA_middle <- filter(MedGPA,GPA>=3.375&GPA<=3.77)
+> 
+> # scatterplot with jitter
+> data_space <- ggplot(MedGPA_middle,aes(x=GPA,y=Acceptance)) + 
+    geom_jitter(width = 0, height = 0.05, alpha = 0.5)
+> 
+> # linear regression line
+> data_space + 
+    geom_smooth(method="lm",se=0)
+> > # fit model
+> glm(Acceptance~GPA, data = MedGPA, family = binomial)
+
+Call:  glm(formula = Acceptance ~ GPA, family = binomial, data = MedGPA)
+
+Coefficients:
+(Intercept)          GPA  
+    -19.207        5.454  
+
+Degrees of Freedom: 54 Total (i.e. Null);  53 Residual
+Null Deviance:	    75.79 
+Residual Deviance: 56.84 	AIC: 60.84
+> > # scatterplot with jitter
+> data_space <- ggplot(MedGPA,aes(x=GPA,y=Acceptance)) + 
+    geom_jitter(width = 0,height = 0.05, alpha = .5)
+> 
+> # add logistic curve
+> data_space +
+    geom_smooth(method="glm",se=FALSE,method.args = list(family = "binomial"))
+> > # binned points and line
+> data_space <- ggplot(MedGPA_binned,aes(x=mean_GPA,y=acceptance_rate))+geom_point()+geom_line()
+> 
+> # augmented model
+> MedGPA_plus <- augment(mod, type.predict = "response")
+> 
+> # logistic model on probability scale
+> data_space +
+    geom_line(data = MedGPA_plus, aes(x=GPA,y = .fitted), color = "red")
+>> # compute odds for bins
+> MedGPA_binned <- MedGPA_binned %>%
+    mutate(odds = acceptance_rate / (1 - acceptance_rate))
+> 
+> # plot binned odds
+> data_space <- ggplot(data = MedGPA_binned, aes(x = mean_GPA, y = odds)) + 
+    geom_point() + geom_line()
+> 
+> # compute odds for observations
+> MedGPA_plus <- MedGPA_plus %>%
+    mutate(odds_hat = .fitted / (1 - .fitted))
+> 
+> # logistic model on odds scale
+> data_space +
+    geom_line(data = MedGPA_plus, aes(x = GPA, y = odds_hat), color = "red")
+>  > # compute log odds for bins
+> MedGPA_binned <- MedGPA_binned%>%mutate(log_odds=log(acceptance_rate/(1-acceptance_rate)))
+> 
+> # plot binned log odds
+> data_space <- ggplot(MedGPA_binned,aes(x=mean_GPA,y=log_odds))+geom_point()+geom_line()
+> 
+> # compute log odds for observations
+> MedGPA_plus <- MedGPA_plus %>%
+    mutate(log_odds_hat =log(.fitted / (1 - .fitted)))
+> 
+> # logistic model on log odds scale
+> data_space +
+    geom_line(data = MedGPA_plus, aes(x = GPA, y = log_odds_hat), color = "red")
+> Interpretation of logistic regression
+The fitted coefficient β^1 from the medical school logistic regression model is 5.45. The exponential of this is 233.73.
+
+Donald's GPA is 2.9, and thus the model predicts that the probability of him getting into medical school is 3.26%. The odds of Donald getting into medical school are 0.0337, or—phrased in gambling terms—29.6:1. If Donald hacks the school's registrar and changes his GPA to 3.9, then which of the following statements is FALSE:
+
+Instructions
+50 XP
+Possible Answers
+His expected odds of getting into medical school improve to 7.8833 (or about 9:8).
+His expected probability of getting into medical school improves to 88.7%.
+His expected log-odds of getting into medical school improve by 5.45.
+His expected probability of getting into medical school improves to 7.9%.
+> # create new data frame
+> new_data <-data.frame(GPA=3.51)
+> 
+> # make predictions
+> augment(mod,newdata=new_data,type.predict ="response")
+   GPA   .fitted    .se.fit
+1 3.51 0.4844099 0.08343193
+> > # data frame with binary predictions
+> tidy_mod <-augment(mod,type.predict = "response")%>%mutate(Acceptance_hat=round(.fitted))
+> 
+> # confusion matrix
+> tidy_mod %>%
+    select(Acceptance, Acceptance_hat) %>% 
+    table()
+          Acceptance_hat
+Acceptance  0  1
+         0 16  9
+         1  6 24
+> Exploratory data analysis
+Multiple regression can be an effective technique for understanding how a response variable changes as a result of changes to more than one explanatory variable. But it is not magic -- understanding the relationships among the explanatory variables is also necessary, and will help us build a better model. This process is often called exploratory data analysis (EDA) and is covered in another DataCamp course.
+
+One quick technique for jump-starting EDA is to examine all of the pairwise scatterplots in your data. This can be achieved using the pairs() function. Look for variables in the nyc data set that are strongly correlated, as those relationships will help us check for multicollinearity later on.
+
+Which pairs of variables appear to be strongly correlated?
+
+Instructions
+50 XP
+Instructions
+50 XP
+Possible Answers
+Case and Decor.
+Restaurant and Price.
+Price and Food.
+Price and East.
+> # Price by Food plot
+> 
+> ggplot(nyc,aes(Food,Price))+geom_point()
+> # Price by Food model
+> lm(Price~Food,nyc)
+
+Call:
+lm(formula = Price ~ Food, data = nyc)
+
+Coefficients:
+(Intercept)         Food  
+    -17.832        2.939
+> Parallel lines with location
+In real estate, a common mantra is that the three most important factors in determining the price of a property are "location, location, and location." If location drives up property values and rents, then we might imagine that location would increase a restaurant's costs, which would result in them having higher prices. In many parts of New York, the east side (east of 5th Avenue) is more developed and perhaps more expensive. [This is increasingly less true, but was more true at the time these data were collected.]
+
+Let's expand our model into a parallel slopes model by including the East variable in addition to Food.
+
+Use lm() to fit a parallel slopes model for Price as a function of Food and East. Interpret the coefficients and the fit of the model. Can you explain the meaning of the coefficient on East in simple terms? Did the coefficient on Food change from the previous model? If so, why? Did it change by a lot or just a little?
+
+Identify the statement that is FALSE:
+
+Instructions
+50 XP
+Instructions
+50 XP
+Possible Answers
+Each additional rating point of food quality is associated with a $2.88 increase in the expected price of meal, after controlling for location.
+The premium for an Italian restaurant in NYC associated with being on the east side of 5th Avenue is $1.46, after controlling for the quality of the food.
+The change in the coefficient of food from $2.94 in the simple linear model to $2.88 in this model has profound practical implications for restaurant owners.
+> # fit model
+> lm(Price~Food+Service,nyc)
+
+Call:
+lm(formula = Price ~ Food + Service, data = nyc)
+
+Coefficients:
+(Intercept)         Food      Service  
+    -21.159        1.495        1.704
+> 
+> # draw 3D scatterplot
+> p <- plot_ly(data = nyc, z = ~Price, x = ~Food, y = ~Service, opacity = 0.6) %>%
+    add_markers()
+> 
+> # draw a plane
+> p %>%
+    add_surface(x = ~x, y = ~y, z = ~plane, showscale = FALSE)
+> > # Price by Food and Service and East
+> lm(Price~Food+Service+East,nyc)
+
+Call:
+lm(formula = Price ~ Food + Service + East, data = nyc)
+
+Coefficients:
+(Intercept)         Food      Service         East  
+   -20.8155       1.4863       1.6647       0.9649
+> Interpretation of location coefficient
+The fitted coefficients from the parallel planes model are listed below.
+
+(Intercept)        Food     Service        East 
+-20.8154761   1.4862725   1.6646884   0.9648814 
+Which of the following statements is FALSE?
+
+Reason about the magnitude of the East coefficient.
+
+Answer the question
+50 XP
+Possible Answers
+The premium for being on the East side of 5th Avenue is just less than a dollar, after controlling for the quality of food and service.
+press
+1
+The impact of location is relatively small, since one additional rating point of either food or service would result in a higher expected price than moving a restaurant from the West side to the East side.
+press
+2
+The expected price of a meal on the East side is about 96% of the cost of a meal on the West side, after controlling for the quality of food and service.
+> # draw 3D scatterplot
+> p <- plot_ly(data = nyc, z = ~Price, x = ~Food, y = ~Service, opacity = 0.6) %>%
+    add_markers(color = ~factor(East))
+> 
+> # draw two planes
+> p %>%
+    add_surface(x = ~x, y = ~y, z = ~plane0, showscale = FALSE) %>%
+    add_surface(x = ~x, y = ~y, z = ~plane1, showscale = FALSE)
+> Full model
+One variable we haven't considered is Decor. Do people, on average, pay more for a meal in a restaurant with nicer decor? If so, does it still matter after controlling for the quality of food, service, and location?
+
+By adding a third numeric explanatory variable to our model, we lose the ability to visualize the model in even three dimensions. Our model is now a hyperplane -- or rather, parallel hyperplanes -- and while we won't go any further with the geometry, know that we can continue to add as many variables to our model as we want. As humans, our spatial visualization ability taps out after three numeric variables (maybe you could argue for four, but certainly no further), but neither the mathematical equation for the regression model, nor the formula specification for the model in R, is bothered by the higher dimensionality.
+
+Use lm() to fit a parallel planes model for Price as a function of Food, Service, Decor, and East.
+
+Notice the dramatic change in the value of the Service coefficient.
+
+Which of the following interpretations is invalid?
+
+Instructions
+50 XP
+Instructions
+50 XP
+Possible Answers
+Since the quality of food, decor, and service were all strongly correlated, multicollinearity is the likely explanation.
+Once we control for the quality of food, decor, and location, the additional information conveyed by service is negligible.
+Service is not an important factor in determining the price of a meal.
+None of the above.
