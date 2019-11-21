@@ -1,0 +1,458 @@
+## 4-Unsupervised Learning in R
+#chap-1-Unsupervised learning
+1 data-https://assets.datacamp.com/production/course_6430/datasets/Pokemon.csv
+2.data-https://assets.datacamp.com/production/course_6430/datasets/WisconsinCancer.csv
+> # Create the k-means model: km.out
+> km.out<-kmeans(x,3,nstart=20)
+> 
+> # Inspect the result
+> summary(km.out)
+             Length Class  Mode   
+cluster      300    -none- numeric
+centers        6    -none- numeric
+totss          1    -none- numeric
+withinss       3    -none- numeric
+tot.withinss   1    -none- numeric
+betweenss      1    -none- numeric
+size           3    -none- numeric
+iter           1    -none- numeric
+ifault         1    -none- numeric
+> > # Print the cluster membership component of the model
+> 
+> km.out
+K-means clustering with 3 clusters of sizes 98, 150, 52
+
+Cluster means:
+        [,1]        [,2]
+1  2.2171113  2.05110690
+2 -5.0556758  1.96991743
+3  0.6642455 -0.09132968
+
+Clustering vector:
+  [1] 1 1 1 1 1 1 1 1 1 1 1 1 3 1 1 1 1 3 3 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3
+ [38] 3 3 1 1 1 1 3 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3
+ [75] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2
+[112] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+[149] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+[186] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+[223] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3 3 3 3 1 3 3 3 3
+[260] 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 1 1 3 3 1 3 3 3 3 3 3 1 3 3 3 3 3 3 1 3 3
+[297] 3 1 3 3
+
+Within cluster sum of squares by cluster:
+[1] 148.64781 295.16925  95.50625
+ (between_SS / total_SS =  87.2 %)
+
+Available components:
+
+[1] "cluster"      "centers"      "totss"        "withinss"     "tot.withinss"
+[6] "betweenss"    "size"         "iter"         "ifault"
+> # Print the km.out object
+> km.out$cluster
+  [1] 1 1 1 1 1 1 1 1 1 1 1 1 3 1 1 1 1 3 3 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3
+ [38] 3 3 1 1 1 1 3 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3
+ [75] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2
+[112] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+[149] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+[186] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+[223] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3 3 3 3 1 3 3 3 3
+[260] 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 1 1 3 3 1 3 3 3 3 3 3 1 3 3 3 3 3 3 1 3 3
+[297] 3 1 3 3
+> # Scatter plot of x
+plot(x,col=km.out$cluster,main="k-means with 3 clusters",xlab="", ylab="")
+> # Set up 2 x 3 plotting grid
+> par(mfrow = c(2, 3))
+> 
+> # Set seed
+> set.seed(1)
+> 
+> for(i in 1:6) {
+    # Run kmeans() on x with three clusters and one start
+    km.out <- kmeans(x, 3, nstart=1)
+    
+    # Plot clusters
+    plot(x, col = km.out$cluster, 
+         main = km.out$tot.withinss, 
+         xlab = "", ylab = "")
+  }
+> > # Initialize total within sum of squares error: wss
+> wss <- 0
+> 
+> # For 1 to 15 cluster centers
+> for (i in 1:15) {
+    km.out <- kmeans(x, centers = i, nstart=20)
+    # Save total within sum of squares to wss variable
+    wss[i] <- km.out$tot.withinss
+  }
+> 
+> # Plot total within sum of squares vs. number of clusters
+> plot(1:15, wss, type = "b", 
+       xlab = "Number of Clusters", 
+       ylab = "Within groups sum of squares")
+> 
+> # Set k equal to the number of clusters corresponding to the elbow location
+> k <- 2
+> > # Initialize total within sum of squares error: wss
+> wss <- 0
+> 
+> # Look over 1 to 15 possible clusters
+> for (i in 1:15) {
+    # Fit the model: km.out
+    km.out <- kmeans(pokemon, centers = i, nstart = 20, iter.max =50)
+    # Save the within cluster sum of squares
+    wss[i] <- km.out$tot.withinss
+  }
+> 
+> # Produce a scree plot
+> plot(1:15, wss, type = "b", 
+       xlab = "Number of Clusters", 
+       ylab = "Within groups sum of squares")
+> 
+> # Select number of clusters
+> k <- 2
+> 
+> # Build model with k clusters: km.out
+> km.out <- kmeans( pokemon, centers = 2, nstart = 20, iter.max = 50)
+> 
+> # View the resulting model
+> km.out
+K-means clustering with 2 clusters of sizes 374, 426
+
+Cluster means:
+  HitPoints   Attack  Defense SpecialAttack SpecialDefense    Speed
+1  54.87968 57.94118 55.49733      52.33155       53.44118 54.04278
+2  81.88263 97.49061 89.94836      90.80751       88.11033 80.77465
+
+Clustering vector:
+  [1] 1 1 2 2 1 1 2 2 2 1 1 2 2 1 1 1 1 1 1 2 1 1 2 2 1 1 1 2 1 2 1 2 1 2 1 1 2
+ [38] 1 1 2 1 2 1 2 1 1 1 2 1 1 2 1 1 1 2 1 1 1 1 1 2 1 2 1 2 1 1 2 1 1 2 2 1 1
+ [75] 2 1 1 2 1 2 1 1 2 1 2 1 2 2 1 2 1 1 2 1 2 1 2 1 2 1 1 2 2 1 1 2 1 2 1 2 1
+[112] 2 1 2 2 2 1 1 2 1 2 1 2 2 2 1 2 1 2 1 2 2 2 2 2 2 2 2 2 1 2 2 2 1 1 2 2 2
+[149] 1 1 2 1 2 2 2 2 2 2 2 1 1 2 2 2 2 2 1 1 2 1 1 2 1 1 2 1 1 1 2 1 1 1 1 2 1
+[186] 2 1 1 1 1 1 1 2 1 1 2 2 2 1 1 1 2 1 1 2 1 1 2 1 1 2 2 2 1 2 2 1 1 2 1 2 1
+[223] 1 2 2 1 2 1 2 2 2 2 2 1 1 2 1 1 1 2 1 1 2 1 2 2 1 2 2 2 1 2 2 2 1 1 2 1 1
+[260] 1 2 2 2 2 2 1 1 2 2 2 2 2 1 1 2 2 1 1 2 2 1 1 2 2 1 1 1 1 1 1 1 1 1 1 1 2
+[297] 1 1 2 1 1 1 2 1 1 2 2 1 1 1 2 1 2 2 1 2 1 1 1 2 1 2 1 1 1 1 1 2 1 2 1 2 2
+[334] 2 1 1 2 1 2 2 1 1 1 1 1 1 2 1 2 2 1 2 1 2 2 2 1 2 1 1 1 2 1 2 1 2 2 2 2 2
+[371] 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 2 1 2 2 1 2 2 1 1 2 2 1 1 2 1 2 2 2 1 1
+[408] 1 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 1 1 2 1 1 2 1 1 2
+[445] 1 1 1 1 1 1 2 1 2 1 2 1 2 1 2 2 2 2 1 2 1 1 2 1 2 1 2 2 1 2 1 2 2 2 2 1 2
+[482] 1 1 2 1 2 1 1 1 1 2 1 1 2 2 1 1 2 2 1 2 1 2 1 2 2 1 2 1 1 2 2 2 2 2 2 2 2
+[519] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1
+[556] 1 2 1 1 2 1 1 2 1 1 1 1 2 1 2 1 2 1 2 1 2 1 2 1 1 2 1 2 1 1 2 1 1 1 2 2 2
+[593] 1 1 2 1 1 2 2 2 1 1 2 1 1 2 1 2 1 2 2 1 1 2 1 2 2 2 1 2 1 2 2 1 2 1 2 1 2
+[630] 1 2 1 2 1 2 1 1 2 1 1 2 1 2 1 1 2 1 2 1 1 2 1 2 1 2 2 1 2 1 2 1 2 2 1 1 2
+[667] 1 2 1 1 2 1 1 2 1 2 2 1 2 2 1 2 2 1 2 1 2 2 1 2 1 2 2 2 1 1 2 1 2 2 2 2 2
+[704] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 1 1 2 1 1 2 1 1 1 1 2 1 1 1 1 2 1 1 2
+[741] 1 2 1 2 2 1 2 2 1 2 2 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 2 2 1 2 1 2 2
+[778] 2 1 2 1 1 1 1 2 2 2 2 1 2 1 2 2 2 2 2 2 2 2 2
+
+Within cluster sum of squares by cluster:
+[1]  911966.2 2007145.9
+ (between_SS / total_SS =  31.9 %)
+
+Available components:
+
+[1] "cluster"      "centers"      "totss"        "withinss"     "tot.withinss"
+[6] "betweenss"    "size"         "iter"         "ifault"
+> 
+> # Plot of Defense vs. Speed by cluster membership
+> plot(pokemon[, c("Defense", "Speed")],
+       col = km.out$cluster,
+       main = paste("k-means clustering of Pokemon with", k, "clusters"),
+       xlab = "Defense", ylab = "Speed")
+>  # Create hierarchical clustering model: hclust.out
+> hclust.out <- hclust(dist(x))
+> 
+> # Inspect the result
+> summary(hclust.out)
+            Length Class  Mode     
+merge       98     -none- numeric  
+height      49     -none- numeric  
+order       50     -none- numeric  
+labels       0     -none- NULL     
+method       1     -none- character
+call         2     -none- call     
+dist.method  1     -none- character
+> > # Cut by height
+> 
+> cutree(hclust.out,h=7)
+ [1] 1 1 1 1 1 1 1 1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3 3 3 3 3 3 3 3 3 3 2 2 2
+[39] 2 2 2 2 2 2 2 2 2 2 2 2
+> # Cut by number of clusters
+> cutree(hclust.out,k=3)
+ [1] 1 1 1 1 1 1 1 1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 3 3 3 3 3 3 3 3 3 3 2 2 2
+[39] 2 2 2 2 2 2 2 2 2 2 2 2
+> # Cluster using complete linkage: hclust.complete
+> hclust.complete <- hclust(dist(x), method = "complete")
+> 
+> # Cluster using average linkage: hclust.average
+> hclust.average <- hclust(dist(x), method = "average")
+> 
+> # Cluster using single linkage: hclust.single
+> hclust.single <- hclust(dist(x), method = "single")
+> 
+> # Plot dendrogram of hclust.complete
+> plot(hclust.complete, main="Complete")
+> 
+> # Plot dendrogram of hclust.average
+> plot(hclust.average,main="Average")
+> 
+> # Plot dendrogram of hclust.single
+> plot(hclust.single,main="Single")
+> > # View column means
+> colMeans(pokemon)
+     HitPoints         Attack        Defense  SpecialAttack SpecialDefense 
+      69.25875       79.00125       73.84250       72.82000       71.90250 
+         Speed 
+      68.27750
+> 
+> # View column standard deviations
+> apply(pokemon,2,sd)
+     HitPoints         Attack        Defense  SpecialAttack SpecialDefense 
+      25.53467       32.45737       31.18350       32.72229       27.82892 
+         Speed 
+      29.06047
+> 
+> # Scale the data
+> pokemon.scaled<-scale(pokemon)
+> 
+> # Create hierarchical clustering model: hclust.pokemon
+> hclust.pokemon<-hclust(dist(pokemon.scaled),method="complete")
+> > # Apply cutree() to hclust.pokemon: cut.pokemon
+> cut.pokemon<-cutree(hclust.pokemon,k=3)
+> 
+> # Compare methods
+> table(km.pokemon$cluster,cut.pokemon)
+   cut.pokemon
+      1   2   3
+  1 204   9   1
+  2 242   1   0
+  3 342   1   0
+#chap3-Introduction to PCA
+> # Perform scaled PCA: pr.out
+> pr.out<-prcomp(pokemon,scale=T)
+> 
+> # Inspect model output
+> summary(pr.out)
+Importance of components:
+                          PC1    PC2    PC3     PC4
+Standard deviation     1.4420 1.0013 0.7941 0.53595
+Proportion of Variance 0.5199 0.2507 0.1577 0.07181
+Cumulative Proportion  0.5199 0.7705 0.9282 1.00000
+# Variability of each principal component: pr.var
+> pr.var <-pr.out$sdev^2
+> 
+> # Variance explained by each principal component: pve
+> pve <- pr.var / sum(pr.var)
+> # Plot variance explained for each principal component
+> plot(pve, xlab = "Principal Component",
+       ylab = "Proportion of Variance Explained",
+       ylim = c(0, 1), type = "b")
+> 
+> # Plot cumulative proportion of variance explained
+> plot( cumsum(pve), xlab = "Principal Component",
+       ylab = "Cumulative Proportion of Variance Explained",
+       ylim = c(0, 1), type = "b")
+> > # Mean of each variable
+> colMeans(pokemon)
+    Total HitPoints    Attack   Defense     Speed 
+   448.82     71.08     81.22     78.44     66.58
+> 
+> # Standard deviation of each variable
+> apply(pokemon, 2, sd)
+    Total HitPoints    Attack   Defense     Speed 
+119.32321  25.62193  33.03078  32.05809  27.51036
+> 
+> # PCA model with scaling: pr.with.scaling
+> pr.with.scaling<-prcomp(pokemon,scale=TRUE)
+> 
+> # PCA model without scaling: pr.without.scaling
+> pr.without.scaling<-prcomp(pokemon,scale=FALSE)
+> 
+> # Create biplots of both for comparison
+> biplot(pr.with.scaling)
+> biplot(pr.without.scaling)
+> #chap-4-case study
+> url <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1903/datasets/WisconsinCancer.csv"
+> 
+> # Download the data: wisc.df
+> wisc.df<-read.csv(url)
+> 
+> # Convert the features of the data: wisc.data
+> wisc.data<-as.matrix(wisc.df[,3:32])
+> 
+> # Set the row names of wisc.data
+> row.names(wisc.data) <- wisc.df$id
+> 
+> # Create diagnosis vector
+> diagnosis <- as.numeric(wisc.df$diagnosis == "M")
+> > # Check column means and standard deviations
+> colMeans(wisc.data)
+            radius_mean            texture_mean          perimeter_mean 
+           1.412729e+01            1.928965e+01            9.196903e+01 
+              area_mean         smoothness_mean        compactness_mean 
+           6.548891e+02            9.636028e-02            1.043410e-01 
+         concavity_mean     concave.points_mean           symmetry_mean 
+           8.879932e-02            4.891915e-02            1.811619e-01 
+ fractal_dimension_mean               radius_se              texture_se 
+           6.279761e-02            4.051721e-01            1.216853e+00 
+           perimeter_se                 area_se           smoothness_se 
+           2.866059e+00            4.033708e+01            7.040979e-03 
+         compactness_se            concavity_se       concave.points_se 
+           2.547814e-02            3.189372e-02            1.179614e-02 
+            symmetry_se    fractal_dimension_se            radius_worst 
+           2.054230e-02            3.794904e-03            1.626919e+01 
+          texture_worst         perimeter_worst              area_worst 
+           2.567722e+01            1.072612e+02            8.805831e+02 
+       smoothness_worst       compactness_worst         concavity_worst 
+           1.323686e-01            2.542650e-01            2.721885e-01 
+   concave.points_worst          symmetry_worst fractal_dimension_worst 
+           1.146062e-01            2.900756e-01            8.394582e-02
+> apply(wisc.data,2,sd)
+            radius_mean            texture_mean          perimeter_mean 
+           3.524049e+00            4.301036e+00            2.429898e+01 
+              area_mean         smoothness_mean        compactness_mean 
+           3.519141e+02            1.406413e-02            5.281276e-02 
+         concavity_mean     concave.points_mean           symmetry_mean 
+           7.971981e-02            3.880284e-02            2.741428e-02 
+ fractal_dimension_mean               radius_se              texture_se 
+           7.060363e-03            2.773127e-01            5.516484e-01 
+           perimeter_se                 area_se           smoothness_se 
+           2.021855e+00            4.549101e+01            3.002518e-03 
+         compactness_se            concavity_se       concave.points_se 
+           1.790818e-02            3.018606e-02            6.170285e-03 
+            symmetry_se    fractal_dimension_se            radius_worst 
+           8.266372e-03            2.646071e-03            4.833242e+00 
+          texture_worst         perimeter_worst              area_worst 
+           6.146258e+00            3.360254e+01            5.693570e+02 
+       smoothness_worst       compactness_worst         concavity_worst 
+           2.283243e-02            1.573365e-01            2.086243e-01 
+   concave.points_worst          symmetry_worst fractal_dimension_worst 
+           6.573234e-02            6.186747e-02            1.806127e-02
+> 
+> 
+> # Execute PCA, scaling if appropriate: wisc.pr
+> 
+> wisc.pr<-prcomp(wisc.data,scale=TRUE, center=TRUE)
+> # Look at summary of results
+> summary(wisc.pr)
+Importance of components:
+                          PC1    PC2     PC3     PC4     PC5     PC6     PC7
+Standard deviation     3.6444 2.3857 1.67867 1.40735 1.28403 1.09880 0.82172
+Proportion of Variance 0.4427 0.1897 0.09393 0.06602 0.05496 0.04025 0.02251
+Cumulative Proportion  0.4427 0.6324 0.72636 0.79239 0.84734 0.88759 0.91010
+                           PC8    PC9    PC10   PC11    PC12    PC13    PC14
+Standard deviation     0.69037 0.6457 0.59219 0.5421 0.51104 0.49128 0.39624
+Proportion of Variance 0.01589 0.0139 0.01169 0.0098 0.00871 0.00805 0.00523
+Cumulative Proportion  0.92598 0.9399 0.95157 0.9614 0.97007 0.97812 0.98335
+                          PC15    PC16    PC17    PC18    PC19    PC20   PC21
+Standard deviation     0.30681 0.28260 0.24372 0.22939 0.22244 0.17652 0.1731
+Proportion of Variance 0.00314 0.00266 0.00198 0.00175 0.00165 0.00104 0.0010
+Cumulative Proportion  0.98649 0.98915 0.99113 0.99288 0.99453 0.99557 0.9966
+                          PC22    PC23   PC24    PC25    PC26    PC27    PC28
+Standard deviation     0.16565 0.15602 0.1344 0.12442 0.09043 0.08307 0.03987
+Proportion of Variance 0.00091 0.00081 0.0006 0.00052 0.00027 0.00023 0.00005
+Cumulative Proportion  0.99749 0.99830 0.9989 0.99942 0.99969 0.99992 0.99997
+                          PC29    PC30
+Standard deviation     0.02736 0.01153
+Proportion of Variance 0.00002 0.00000
+Cumulative Proportion  1.00000 1.00000
+> > # Create a biplot of wisc.pr
+> biplot(wisc.pr)
+> 
+> # Scatter plot observations by components 1 and 2
+> plot(wisc.pr$x[, c(1, 2)], col = (diagnosis + 1), 
+       xlab = "PC1", ylab = "PC2")
+> 
+> # Repeat for components 1 and 3
+> plot(wisc.pr$x[, c(1, 3)], col = (diagnosis + 1), 
+       xlab = "PC1", ylab = "PC3")
+> 
+> # Do additional data exploration of your choosing below (optional)
+> > # Set up 1 x 2 plotting grid
+> par(mfrow = c(1, 2))
+> 
+> # Calculate variability of each component
+> pr.var<-wisc.pr$sdev^2
+> 
+> # Variance explained by each principal component: pve
+> pve<-pr.var/sum(pr.var)
+> 
+> # Plot variance explained for each principal component
+> plot(pve, xlab = "Principal Component", 
+       ylab = "Proportion of Variance Explained", 
+       ylim = c(0, 1), type = "b")
+> 
+> # Plot cumulative proportion of variance explained
+> plot(cumsum(pve), xlab = "Principal Component", 
+       ylab = "Cumulative Proportion of Variance Explained", 
+       ylim = c(0, 1), type = "b")
+> # Scale the wisc.data data: data.scaled
+> data.scaled<-scale(wisc.data)
+> 
+> # Calculate the (Euclidean) distances: data.dist
+> data.dist<-dist(data.scaled)
+> 
+> # Create a hierarchical clustering model: wisc.hclust
+> wisc.hclust<-hclust(data.dist,method="complete")
+> > # Cut tree so that it has 4 clusters: wisc.hclust.clusters
+> wisc.hclust.clusters<-cutree(wisc.hclust,k=4)
+> 
+> # Compare cluster membership to actual diagnoses
+> table(wisc.hclust.clusters,diagnosis)
+                    diagnosis
+wisc.hclust.clusters   0   1
+                   1  12 165
+                   2   2   5
+                   3 343  40
+                   4   0   2
+> > # Create a k-means model on wisc.data: wisc.km
+> wisc.km<-kmeans(scale(wisc.data),centers=2,nstart=20)
+> 
+> # Compare k-means to actual diagnoses
+> table(wisc.km$cluster,diagnosis)
+   diagnosis
+      0   1
+  1  14 175
+  2 343  37
+> 
+> # Compare k-means to hierarchical clustering
+> table(wisc.km$cluster,wisc.hclust.clusters)
+   wisc.hclust.clusters
+      1   2   3   4
+  1 160   7  20   2
+  2  17   0 363   0
+> > # Create a hierarchical clustering model: wisc.pr.hclust
+> wisc.pr.hclust <- hclust(dist(wisc.pr$x[, 1:7]), method = "complete")
+> 
+> # Cut model into 4 clusters: wisc.pr.hclust.clusters
+> wisc.pr.hclust.clusters<-cutree(wisc.pr.hclust,k=4)
+> 
+> # Compare to actual diagnoses
+> table(wisc.pr.hclust.clusters, diagnosis)
+                       diagnosis
+wisc.pr.hclust.clusters   0   1
+                      1   5 113
+                      2 350  97
+                      3   2   0
+                      4   0   2
+> table(wisc.hclust.clusters, diagnosis)
+                    diagnosis
+wisc.hclust.clusters   0   1
+                   1  12 165
+                   2   2   5
+                   3 343  40
+                   4   0   2
+> # Compare to k-means and hierarchical
+> table(wisc.km$cluster, diagnosis)
+   diagnosis
+      0   1
+  1  14 175
+  2 343  37
+> table(wisc.km$cluster,wisc.pr.hclust.clusters)
+   wisc.pr.hclust.clusters
+      1   2   3   4
+  1 115  70   2   2
+  2   3 377   0   0
+> 
