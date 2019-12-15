@@ -1,0 +1,714 @@
+## chap-1
+Coin flips with prop_model
+The function prop_model has been loaded into your workspace. It implements a Bayesian model that assumes that:
+
+The data is a vector of successes and failures represented by 1s and 0s.
+There is an unknown underlying proportion of success.
+Prior to being updated with data any underlying proportion of success is equally likely.
+Assume you just flipped a coin four times and the result was heads, tails, tails, heads. If you code heads as a success and tails as a failure then the following R codes runs prop_model with this data
+
+data <- c(1, 0, 0, 1)
+prop_model(data)
+Zombie drugs with prop_model
+If we really were interested in the underlying proportion of heads of this coin then prop_model isn't particularly useful. Since it assumes that any underlying proportion of success is equally likely prior to seeing any data it will take a lot of coin flipping to convince prop_model that the coin is fair. This model is more appropriate in a situation where we have little background knowledge about the underlying proportion of success.
+Zombie drugs with prop_model
+If we really were interested in the underlying proportion of heads of this coin then prop_model isn't particularly useful. Since it assumes that any underlying proportion of success is equally likely prior to seeing any data it will take a lot of coin flipping to convince prop_model that the coin is fair. This model is more appropriate in a situation where we have little background knowledge about the underlying proportion of success.
+# Update the data and rerun prop_model
+> data = c(1, 0, 0, 1,0,0,0,0,0,0,0,0,0)
+> prop_model(data)
+Looking at samples from prop_model
+Here again is the prop_model function which has been given the data from our zombie experiment where two out of 13 zombies got cured. In addition to producing a plot, prop_model also returns a large random sample from the posterior over the underlying proportion of success.
+ data = c(1, 0, 0, 1, 0, 0,
+           0, 0, 0, 0, 0, 0, 0)
+> # Extract and explore the posterior
+> posterior <- prop_model(data)
+> head(posterior)
+[1] 0.1332835 0.2233712 0.1147272 0.2434348 0.1160166 0.2668207
+Summarizing the zombie drug experiment
+The point of working with samples from a probability distribution is that it makes it easy to calculate new measures of interest. The following tasks are about doing just this!
+ data = c(1, 0, 0, 1, 0, 0,
+           0, 0, 0, 0, 0, 0, 0)
+> posterior <- prop_model(data)
+> hist(posterior, breaks = 30, xlim = c(0, 1), col = "palegreen4")
+> 
+> # Calculate some measures of interest using the posterior
+> median(posterior)
+[1] 0.1876777
+> data = c(1, 0, 0, 1, 0, 0,
+           0, 0, 0, 0, 0, 0, 0)
+> posterior <- prop_model(data)
+> hist(posterior, breaks = 30, xlim = c(0, 1), col = "palegreen4")
+> 
+> # Calculate some measures of interest using the posterior
+> median(posterior)
+[1] 0.1876777
+> quantile(posterior,c(0.05, 0.95))
+        5%        95% 
+0.06260286 0.38491335
+> data = c(1, 0, 0, 1, 0, 0,
+           0, 0, 0, 0, 0, 0, 0)
+> posterior <- prop_model(data)
+> hist(posterior, breaks = 30, xlim = c(0, 1), col = "palegreen4")
+> 
+> # Calculate some measures of interest using the posterior
+> median(posterior)
+[1] 0.1876777
+> quantile(posterior,c(0.05, 0.95))
+        5%        95% 
+0.06260286 0.38491335
+> sum(posterior>0.07)
+[1] 9332
+> sum(posterior>0.07)/length(posterior)
+[1] 0.9332
+##chap-2-The parts needed for Bayesian inference
+Take a generative model for a spin
+To the right you have the R code that implements the generative model we just developed.
+> # The generative zombie drug model
+> 
+> # Parameters
+> prop_success <- 0.42
+> n_zombies <- 100
+> 
+> # Simulating data
+> data <- c()
+> for(zombie in 1:n_zombies) {
+    data[zombie] <- runif(1, min = 0, max = 1) < prop_success
+  }
+> data <- as.numeric(data)
+> sum(data)
+[1] 49
+Take the binomial distribution for a spin
+It turns out that the generative model you ran last exercise already has a name. It's called the binomial process or the binomial distribution. In R you can use the rbinom function to simulate data from a binomial distribution. The rbinom function takes three arguments:
+n The number of times you want to run the generative model
+size The number of trials. (For example, the number of zombies you're giving the drug.)
+prob The underlying proportion of success as a number between 0.0 and 1.0.
+
+> # Try out rbinom
+rbinom(n = 200, size = 100, prob = 0.42)
+How many visitors could your site get (1)?
+To get more visitors to your website you are considering paying for an ad to be shown 100 times on a popular social media site. According to the social media site, their ads get clicked on 10% of the time.
+> # Fill in the parameters
+> n_samples <- 100000
+> n_ads_shown <-100
+> proportion_clicks <- 0.10
+> n_visitors <- rbinom(n_samples, size = n_ads_shown, 
+                       prob = proportion_clicks)
+> 
+> # Visualize n_visitors
+> hist(n_visitors)
+> Adding a prior to the model
+You're not so sure that your ad will get clicked on exactly 10% of the time. Instead of assigning proportion_clicks a single value you are now going to assign it a large number of values drawn from a probability distribution.
+> # Update proportion_clicks
+> n_samples <- 100000
+> n_ads_shown <- 100
+> proportion_clicks <- runif(100000,0,0.2)
+> n_visitors <- rbinom(n = n_samples, size = n_ads_shown, prob = proportion_clicks)
+> 
+> # Visualize the results
+> hist(proportion_clicks)
+> hist(n_visitors)
+> Update a Bayesian model with data
+You ran your ad campaign, and 13 people clicked and visited your site when the ad was shown a 100 times. You would now like to use this new information to update the Bayesian model.
+> # Create the prior data frame
+> prior <- data.frame(proportion_clicks, n_visitors)
+> 
+> 
+> # Create the posterior data frame
+> posterior<-prior[prior$n_visitors==13,]
+> hist(posterior$proportion_clicks)
+> How many visitors could your site get (3)?
+In the last exercise, you updated the probability distribution over the underlying proportions of clicks (proportion_clicks) using new data. Now we want to use this updated proportion_clicks to predict how many visitors we would get if we reran the ad campaign.
+> # Assign posterior to a new variable called prior
+> prior <- posterior
+> # Take a look at the first rows in prior
+> head(prior)
+    proportion_clicks n_visitors
+28          0.1188284         13
+58          0.1506616         13
+100         0.1023011         13
+115         0.1441193         13
+180         0.1163500         13
+223         0.1456789         13
+> # Replace prior$n_visitors with a new sample and visualize the result
+> prior$n_visitors<-rbinom(n_samples, size = n_ads_shown,prob=prior$proportion_clicks)
+> hist(prior$n_visitors)
+> # Calculate the probability that you will get 5 or more visitors
+> sum(prior$n_visitors>=5)/length(prior$n_visitors)
+[1] 0.9873338
+#chap-3-Four good things with Bayes
+Explore using the Beta distribution as a prior
+The Beta distribution is a useful probability distribution when you want model uncertainty over a parameter bounded between 0 and 1. Here you'll explore how the two parameters of the Beta distribution determine its shape.
+> # Explore using the rbeta function
+> beta_sample <- rbeta(n = 1000000, shape1 = 100, shape2 = 20)
+> head(beta_sample)
+[1] 0.7533950 0.8334411 0.8843119 0.8577835 0.8763158 0.7915938
+> 
+> # Visualize the results
+> hist(beta_sample)
+> Change the model to use an informative prior
+The code to the right is the old model you developed from scratch in chapter 2.
+> n_draws <- 100000
+> n_ads_shown <- 100
+> 
+> # Change the prior on proportion_clicks
+> proportion_clicks <- 
+    rbeta(n_draws, shape1 = 5, shape2 = 95)
+> n_visitors <- 
+    rbinom(n_draws, size = n_ads_shown, 
+           prob = proportion_clicks)
+> prior <- 
+    data.frame(proportion_clicks, n_visitors)
+> posterior <- 
+    prior[prior$n_visitors == 13, ]
+> 
+> # This plots the prior and the posterior in the same plot
+> par(mfcol = c(2, 1))
+> hist(prior$proportion_clicks, 
+       xlim = c(0, 0.25))
+> hist(posterior$proportion_clicks, 
+       xlim = c(0, 0.25))
+> Fit the model using another dataset
+Let's fit the binomial model to both the video ad data (13 out of 100 clicked) and the new text ad data (6 out of a 100 clicked).
+> n_draws <- 100000
+> n_ads_shown <- 100
+> proportion_clicks <- runif(n_draws, min = 0.0, max = 0.2)
+> n_visitors <- rbinom(n = n_draws, size = n_ads_shown, 
+                       prob = proportion_clicks)
+> prior <- data.frame(proportion_clicks, n_visitors)
+> 
+> # Create the posteriors for video and text ads
+> posterior_video <- prior[prior$n_visitors == 13, ]
+> posterior_text <- prior[prior$n_visitors==6,]
+> 
+> # Visualize the posteriors
+> hist(posterior_video$proportion_clicks, xlim = c(0, 0.25))
+> hist(posterior_text$proportion_clicks, xlim = c(0, 0.25))
+> Calculating the posterior difference
+The posterior proportion_clicks for the video and text ad has been put into a single posterior data frame. The reason for [1:4000] is because these proportion_clickss are not necessarily of the same length, which they need to be when put into a data frame.
+
+Now it's time to calculate the posterior probability distribution over what the difference in proportion of clicks might be between the video ad and the text ad.
+> posterior <- data.frame(
+      video_prop = posterior_video$proportion_clicks[1:4000],
+      text_prop  = posterior_text$proportion_click[1:4000])
+> 
+> # Calculate the posterior difference: video_prop - text_prop
+> posterior$prop_diff<-posterior$video_prop-posterior$text_prop
+> 
+> # Visualize prop_diff
+> hist(posterior$prop_diff)
+> 
+> # Summarize prop_diff
+> summary(posterior$prop_diff)
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+-0.08624  0.03930  0.06656  0.06559  0.09276  0.17953
+> median(posterior$prop_diff)
+[1] 0.06656075
+> mean(posterior$prop_diff>0)
+[1] 0.95375
+> 
+A small decision analysis 1
+Each visitor spends $2.53 on average, a video ad costs $0.25 and a text ad costs $0.05. Let's figure out the probable profit when using video ads and text ads!
+> visitor_spend <- 2.53
+> video_cost <- 0.25
+> text_cost <- 0.05
+> 
+> # Add the column posterior$video_profit
+> posterior$video_profit<-posterior$video_prop*visitor_spend -video_cost
+> # Add the column posterior$text_profit
+> posterior$text_profit<-posterior$text_prop*visitor_spend -text_cost
+> # Visualize the video_profit and text_profit columns
+> hist(posterior$video_profit)
+> hist(posterior$text_profit)
+> head(posterior)
+  video_prop  text_prop video_profit text_profit
+1 0.12806212 0.06053867  0.073997166  0.10316285
+2 0.15193413 0.03180920  0.134393342  0.03047728
+3 0.10885395 0.06093444  0.025400496  0.10416413
+4 0.09939323 0.10039949  0.001464884  0.20401072
+5 0.19763349 0.06343643  0.250012728  0.11049417
+6 0.15145781 0.02632283  0.133188252  0.01659675
+> A small decision analysis 2
+Using the columns video_profit and text_profit that you added to posterior in the last exercise, let's conclude the decision analysis.
+> # Add the column posterior$profit_diff
+> posterior$profit_diff<-posterior$video_profit-posterior$text_profit
+> # Visualize posterior$profit_diff
+> hist(posterior$profit_diff)
+> # Calculate a "best guess" for the difference in profits
+> median(posterior$profit_diff)
+[1] -0.03233297
+> # Calculate the probability that text ads are better than video ads
+> mean(posterior$profit_diff<0)
+[1] 0.6288889
+> head(posterior)
+  video_prop  text_prop video_profit text_profit profit_diff
+1 0.12806212 0.06053867  0.073997166  0.10316285 -0.02916568
+2 0.15193413 0.03180920  0.134393342  0.03047728  0.10391606
+3 0.10885395 0.06093444  0.025400496  0.10416413 -0.07876364
+4 0.09939323 0.10039949  0.001464884  0.20401072 -0.20254584
+5 0.19763349 0.06343643  0.250012728  0.11049417  0.13951856
+6 0.15145781 0.02632283  0.133188252  0.01659675  0.11659150
+> The Poisson distribution
+The Poisson distribution simulates a process where the outcome is a number of occurrences per day/year/area/unit/etc. Before using it in a Bayesian model, let's explore it!
+> # Simulate from a Poisson distribution and visualize the resultn you put up a banner on your friend's site you got 19 clicks in a day, how many daily clicks should you expect this banner to generate on average? Now, modify your model, one piece at a time, to calculate this.
+
+> x<-rpois(n=10000,lambda=11.5)
+> hist(x)
+> mean(x>=15)
+[1] 0.18
+> Clicks per day instead of clicks per ad
+Whe# Change this model so that it uses a Poisson distribution instead
+> n_draws <- 100000
+> n_ads_shown <- 100
+> mean_clicks <- runif(n_draws, min = 0, max = 80)
+> n_visitors <- rpois(n_draws, lambda=mean_clicks)
+> 
+> prior <- data.frame(mean_clicks, n_visitors)
+> posterior <- prior[prior$n_visitors == 19, ]
+#chap-4-Probability rules
+Cards and the sum rule
+A standard French-suited deck of playing cards contains 52 cards; 13 each of hearts (♥), spades (♠), clubs (♦), and diamonds (♣). Assuming that you have a well-shuffled deck in front of you, the probability of drawing any given card is 1/52 ≈ 1.92%.
+ain, assuming that you have a well-shuffled deck in front of you, the probability of drawing any given card is 1/52 ≈ 1.92% . The probability of drawing any of the four aces is 1/52 + 1/52 + 1/52 + 1/52 = 4/52. Once an ace has been drawn, the probability of picking any of the remaining three is 3/51. If another ace is drawn the probability of picking any of the remaining two is 2/50, and so on.
+
+> # Calculate the probability of drawing any of the four aces
+> prob_to_draw_ace <- 4/52
+> Cards and the product rule
+A> # Calculate the probability of picking four aces in a row
+> prob_to_draw_four_aces <- (4/52)*(3/51)*(2/50)*(1/49)
+> 
+From rbinom to dbinom
+To the right is currently code that
+
+Simulates the number of clicks/visitors (n_clicks) from 100 shown ads using the rbinom function given that the underlying proportion of clicks is 10%.
+Calculates the probability of getting 13 visitors (prob_13_visitors).
+That is, in probability notation it's calculating P(n_visitors = 13 | proportion_clicks = 10%).
+From rbinom to dbinom
+To the right is currently code that
+> # Rewrite this code so that it uses dbinom instead of rbinom
+> n_ads_shown <- 100
+> proportion_clicks <- 0.1
+> n_visitors <- rbinom(n = 99999, 
+      size = n_ads_shown, prob = proportion_clicks)
+> 
+> prob_13_visitors<-dbinom(x=13,size = n_ads_shown, prob = proportion_clicks)
+> prob_13_visitors
+[1] 0.07430209
+Calculating probabilities with dbinom
+To the right is roughly the code you ended up with in the last exercise.
+> # Explore using dbinom to calculate probability distributions
+> n_ads_shown <- 100
+> proportion_clicks <-seq(0, 1, by = 0.01)
+> n_visitors <- 13
+> prob <- dbinom(n_visitors, 
+      size = n_ads_shown, prob = proportion_clicks)
+> prob
+  [1]  0.000000e+00  2.965956e-11  1.004526e-07  8.009768e-06  1.368611e-04
+  [6]  1.001075e-03  4.265719e-03  1.247940e-02  2.764481e-02  4.939199e-02
+ [11]  7.430209e-02  9.703719e-02  1.125256e-01  1.178532e-01  1.129620e-01
+ [16]  1.001234e-01  8.274855e-02  6.419966e-02  4.701652e-02  3.265098e-02
+ [21]  2.158348e-02  1.362418e-02  8.234325e-03  4.775927e-03  2.663369e-03
+ [26]  1.430384e-03  7.408254e-04  3.704422e-04  1.790129e-04  8.366678e-05
+ [31]  3.784500e-05  1.657584e-05  7.032793e-06  2.891291e-06  1.151996e-06
+ [36]  4.448866e-07  1.665302e-07  6.041614e-08  2.124059e-08  7.234996e-09
+ [41]  2.386939e-09  7.624614e-10  2.357105e-10  7.048636e-11  2.037726e-11
+ [46]  5.691404e-12  1.534658e-12  3.991862e-13  1.000759e-13  2.415778e-14
+ [51]  5.609229e-15  1.251336e-15  2.678760e-16  5.495443e-17  1.078830e-17
+ [56]  2.023515e-18  3.620178e-19  6.166397e-20  9.980560e-21  1.531703e-21
+ [61]  2.223762e-22  3.046572e-23  3.927965e-24  4.752038e-25  5.377247e-26
+ [66]  5.671478e-27  5.554432e-28  5.030231e-29  4.193404e-30  3.201904e-31
+ [71]  2.227032e-32  1.402449e-33  7.942805e-35  4.015572e-36  1.797200e-37
+ [76]  7.054722e-39  2.403574e-40  7.024314e-42  1.737424e-43  3.582066e-45
+ [81]  6.048981e-47  8.199196e-49  8.713462e-51  7.062754e-53  4.226413e-55
+ [86]  1.795925e-57  5.170371e-60  9.521923e-63  1.044590e-65  6.239308e-69
+ [91]  1.807405e-72  2.180415e-76  8.911963e-81  9.240821e-86  1.591196e-91
+ [96]  2.358848e-98 1.001493e-106 1.546979e-117 8.461578e-133 6.239651e-159
+[101]  0.000000e+00
+> plot(proportion_clicks,prob)
+> calculating a joint distribution
+To the right, you have parts of the code we developed in the last video. It defines a grid over the underlying proportions of clicks (proportion_clicks) and possible outcomes (n_visitors) in pars. It adds to it the prior probability of each parameter combination and the likelihood that each proportion_clicks would generate the corresponding n_visitors.
+
+n_ads_shown <- 100
+> proportion_clicks <- seq(0, 1, by = 0.01)
+> n_visitors <- seq(0, 100, by = 1)
+> pars <- expand.grid(proportion_clicks = proportion_clicks,
+                      n_visitors = n_visitors)
+> pars$prior <- dunif(pars$proportion_clicks, min = 0, max = 0.2)
+> pars$likelihood <- dbinom(pars$n_visitors, 
+      size = n_ads_shown, prob = pars$proportion_clicks)
+> 
+> # Add the column pars$probability and normalize it
+> pars$probability <-pars$prior*pars$likelihood
+> pars$probability<-pars$probability/sum(pars$probability)
+> Conditioning on the data (again)
+Let's resurrect the zombie site example where you tested text ads. Out of a 100 impressions of the text ad, 6 out of a 100 clicked and visited your site.
+
+To the right is roughly the code you developed in the last exercise. pars is currently the joint distribution over all combinations of proportion_clicks and n_visitors.
+Conditioning on the data (again)
+Let's resurrect the zombie site example where you tested text ads. Out of a 100 impressions of the text ad, 6 out of a 100 clicked and visited your site.
+
+To the right is roughly the code you developed in the last exercise. pars is currently the joint distribution over all combinations of proportion_clicks and n_visitors.
+A conditional shortcut
+Great, you've now done some Bayesian computation, without doing any simulation! The plot you produced should be similar to the posterior distribution you calculated in chapter 3. However, if you look to the right you see that it required an awful lot of code, isn't there anything we can cut?
+
+Yes, there is! You can directly condition on the data, no need to first create the joint distribution.
+> n_ads_shown <- 100
+> proportion_clicks <- seq(0, 1, by = 0.01)
+> n_visitors <- seq(0, 100, by = 1)
+> pars <- expand.grid(proportion_clicks = proportion_clicks,
+                      n_visitors = n_visitors)
+> pars$prior <- dunif(pars$proportion_clicks, min = 0, max = 0.2)
+> pars$likelihood <- dbinom(pars$n_visitors, 
+      size = n_ads_shown, prob = pars$proportion_clicks)
+> pars$probability <- pars$likelihood * pars$prior
+> pars$probability <- pars$probability / sum(pars$probability)
+> # Condition on the data
+> pars <-pars[pars$n_visitors == 6,]
+> # Normalize again
+> pars$probability <- pars$probability / sum(pars$probability)
+> # Plot the posterior pars$probability
+> plot(pars$proportion_clicks,pars$probability, type = "h")
+#chap-5-The temperature in a Normal lake
+norm, dnorm, and the weight of newborns
+Here is a small data set with the birth weights of six newborn babies in grams.
+
+c(3164, 3362, 4435, 3542, 3578, 4529)
+> # Explore using rnorm and dnorm
+> mu <- mean(c(3164, 3362, 4435, 3542, 3578, 4529))
+> sigma <- sd(c(3164, 3362, 4435, 3542, 3578, 4529))
+> 
+> weight_distr <- rnorm(n = 100000, mean = mu, sd = sigma)
+> hist(weight_distr, 60, xlim = c(0, 6000), col = "lightgreen")
+> # Explore using rnorm and dnorm
+mu <- mean(c(3164, 3362, 4435, 3542, 3578, 4529))
+sigma <- sd(c(3164, 3362, 4435, 3542, 3578, 4529))
+weight<-seq(from=0,to=6000,by=100)
+likelihood<-dnorm(weight,mu,sigma)
+weight_distr <- rnorm(n = 100000, mean = mu, sd = sigma)
+hist(weight_distr, 60, xlim = c(0, 6000), col = "lightgreen"
+A Bayesian model of Zombie IQ
+Zombies are stupid, and you and your colleagues at the National Zombie Research Laboratory are interested in how stupid they are. To the right, you have the Normal model we developed in the last video, but with the temperature data switched out with some zombie IQs fresh from the lab. What we're interested in is how much we can learn about the mean zombie IQ from this data. The model is complete, save for that we need to calculate the probability of each parameter combination in pars.
+> # The IQ of a bunch of zombies
+> iq <- c(55, 44, 34, 18, 51, 40, 40, 49, 48, 46)
+> # Defining the parameter grid
+> pars <- expand.grid(mu = seq(0, 150, length.out = 100), 
+                      sigma = seq(0.1, 50, length.out = 100))
+> # Defining and calculating the prior density for each parameter combination
+> pars$mu_prior <- dnorm(pars$mu, mean = 100, sd = 100)
+> pars$sigma_prior <- dunif(pars$sigma, min = 0.1, max = 50)
+> pars$prior <- pars$mu_prior * pars$sigma_prior
+> # Calculating the likelihood for each parameter combination
+> for(i in 1:nrow(pars)) {
+    likelihoods <- dnorm(iq, pars$mu[i], pars$sigma[i])
+    pars$likelihood[i] <- prod(likelihoods)
+  }
+> # Calculate the probability of each parameter combination
+> pars$probability <- pars$likelihood * pars$prior / sum(pars$likelihood * pars$prior)
+> Sampling from the zombie posterior
+Again pars contains the data frame representing the posterior zombie IQ distribution you calculated earlier. The code to the right draws sample_indices: a sample of row numbers (a.k.a. indices) from the posterior. Now, let's sample from pars to calculate some new measures!
+> head(pars)
+        mu sigma    mu_prior sigma_prior        prior likelihood probability
+1 0.000000   0.1 0.002419707  0.02004008 4.849113e-05          0           0
+2 1.515152   0.1 0.002456367  0.02004008 4.922578e-05          0           0
+3 3.030303   0.1 0.002493009  0.02004008 4.996010e-05          0           0
+4 4.545455   0.1 0.002529617  0.02004008 5.069373e-05          0           0
+5 6.060606   0.1 0.002566174  0.02004008 5.142633e-05          0           0
+6 7.575758   0.1 0.002602661  0.02004008 5.215754e-05          0           0
+> sample_indices <- sample( nrow(pars), size = 10000,
+      replace = TRUE, prob = pars$probability)
+> head(sample_indices)
+[1] 2725 1931 2526 1828 1728 3626
+> 
+> # Sample from pars to calculate some new measures
+> pars_sample <- pars[sample_indices,c("mu","sigma")]
+> 
+> # Visualize pars_sample
+> hist(pars_sample$mu)
+> # Calculate the 0.025, 0.5 and 0.975 quantiles of pars_sample$mu
+> quantile(pars_sample$mu,c(0.025, 0.5,0.975))
+    2.5%      50%    97.5% 
+34.84848 42.42424 50.00000
+> But how smart will the next zombie be?
+So we have an idea about what the mean zombie IQ is but what range of zombie IQs should we expect? And how likely is it that the next zombie you encounter is, at least, moderately intelligent?
+> head(pars_sample)
+           mu     sigma
+2725 36.36364 13.709091
+1931 45.45455  9.676768
+2526 37.87879 12.701010
+1828 40.90909  9.172727
+1728 40.90909  8.668687
+3626 37.87879 18.245455
+> pred_iq <- rnorm(10000, mean = pars_sample$mu, 
+                   sd = pars_sample$sigma)
+> # Visualize pred_iq
+> hist(pred_iq)
+> # Calculate the probability of a zombie being "smart" (+60 IQ)
+> mean(pred_iq>=60)
+[1] 0.0918
+> The BEST models and zombies on a diet
+The t-test is a classical statistical procedure used to compare the means of two data sets. In 2013 John Kruschke developed a souped-up Bayesian version of the t-test he named BEST (standing for Bayesian Estimation Supersedes the t-test). Let's try out BEST as implemented in the BEST package.
+# The IQ of zombies on a regular diet and a brain based diet.
+iq_brains <- c(44, 52, 42, 66, 53, 42, 55, 57, 56, 51)
+iq_regular <- c(55, 44, 34, 18, 51, 40, 40, 49, 48, 46)
+
+# Calculate the mean difference in IQ between the two groups
+mean(iq_brains-iq_regular)
+# Fit the BEST model to the data from both groups
+library(BEST)
+best_posterior<-BESTmcmc(iq_brains, iq_regular)
+# Plot the model result
+plot(best_posterior)
+Question
+This plot shows the posterior probability distribution over the difference in means between iq_brains and iq_regular. On top of this you get:
+
+(1) The mean of the posterior as a "best guess" for the difference.
+
+(2) A 95% credible interval (called a 95% Highest Density Interval in the plot).
+
+(3) The amount of probability below and above zero difference.
+
+What would be a reasonable conclusion to draw from this analysis?
+Possible Answers
+There is no evidence that eating brains makes zombies smarter.
+There is some evidence that eating brains makes zombies smarter, but it's uncertain by how much.
+There is some evidence that eating brains makes zombies dumber, but it's uncertain by how much.
+Brain-eating zombies score 8 or more in IQ tests compared to normal zombies.
+BEST is robust
+The Bayesian model behind BEST assumes that the generative model for the data is a t-distribution; a more flexible distribution than the normal distribution as it assumes that data points might be outliers to some degree. This makes BEST's estimate of the mean difference robust to outliers in the data.
+> # The IQ of zombies given a regular diet and a brain based diet.
+> iq_brains <- c(44, 52, 42, 66, 53, 42, 55, 57, 56, 51)
+> iq_regular <- c(55, 44, 34, 18, 51, 40, 40, 49, 48, 150)
+> 
+> # Modify the data above and calculate the difference in means
+> mean(iq_brains-iq_regular)
+[1] -1.1
+> # Fit the BEST model to the modified data and plot the result
+> library(BEST)
+> best_posterior<-BESTmcmc(iq_brains, iq_regular)
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+Graph information:
+   Observed stochastic nodes: 20
+   Unobserved stochastic nodes: 5
+   Total graph size: 59
+
+Initializing model
+
+
+  |                                                        
+  |                                                  |   0%
+  |                                                        
+  |+                                                 |   2%
+  |                                                        
+  |++                                                |   4%
+  |                                                        
+  |+++                                               |   6%
+  |                                                        
+  |++++                                              |   8%
+  |                                                        
+  |+++++                                             |  10%
+  |                                                        
+  |++++++                                            |  12%
+  |                                                        
+  |+++++++                                           |  14%
+  |                                                        
+  |++++++++                                          |  16%
+  |                                                        
+  |+++++++++                                         |  18%
+  |                                                        
+  |++++++++++                                        |  20%
+  |                                                        
+  |+++++++++++                                       |  22%
+  |                                                        
+  |++++++++++++                                      |  24%
+  |                                                        
+  |+++++++++++++                                     |  26%
+  |                                                        
+  |++++++++++++++                                    |  28%
+  |                                                        
+  |+++++++++++++++                                   |  30%
+  |                                                        
+  |++++++++++++++++                                  |  32%
+  |                                                        
+  |+++++++++++++++++                                 |  34%
+  |                                                        
+  |++++++++++++++++++                                |  36%
+  |                                                        
+  |+++++++++++++++++++                               |  38%
+  |                                                        
+  |++++++++++++++++++++                              |  40%
+  |                                                        
+  |+++++++++++++++++++++                             |  42%
+  |                                                        
+  |++++++++++++++++++++++                            |  44%
+  |                                                        
+  |+++++++++++++++++++++++                           |  46%
+  |                                                        
+  |++++++++++++++++++++++++                          |  48%
+  |                                                        
+  |+++++++++++++++++++++++++                         |  50%
+  |                                                        
+  |++++++++++++++++++++++++++                        |  52%
+  |                                                        
+  |+++++++++++++++++++++++++++                       |  54%
+  |                                                        
+  |++++++++++++++++++++++++++++                      |  56%
+  |                                                        
+  |+++++++++++++++++++++++++++++                     |  58%
+  |                                                        
+  |++++++++++++++++++++++++++++++                    |  60%
+  |                                                        
+  |+++++++++++++++++++++++++++++++                   |  62%
+  |                                                        
+  |++++++++++++++++++++++++++++++++                  |  64%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++                 |  66%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++                |  68%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++               |  70%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++              |  72%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++             |  74%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++            |  76%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++++           |  78%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++++          |  80%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++++++         |  82%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++++++        |  84%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++++++++       |  86%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++++++++      |  88%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++++++++++     |  90%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++++++++++    |  92%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++++++++++++   |  94%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++++++++++++  |  96%
+  |                                                        
+  |+++++++++++++++++++++++++++++++++++++++++++++++++ |  98%
+  |                                                        
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100%
+NOTE: Stopping adaptation
+
+
+
+  |                                                        
+  |                                                  |   0%
+  |                                                        
+  |*                                                 |   2%
+  |                                                        
+  |**                                                |   4%
+  |                                                        
+  |***                                               |   6%
+  |                                                        
+  |****                                              |   8%
+  |                                                        
+  |*****                                             |  10%
+  |                                                        
+  |******                                            |  12%
+  |                                                        
+  |*******                                           |  14%
+  |                                                        
+  |********                                          |  16%
+  |                                                        
+  |*********                                         |  18%
+  |                                                        
+  |**********                                        |  20%
+  |                                                        
+  |***********                                       |  22%
+  |                                                        
+  |************                                      |  24%
+  |                                                        
+  |*************                                     |  26%
+  |                                                        
+  |**************                                    |  28%
+  |                                                        
+  |***************                                   |  30%
+  |                                                        
+  |****************                                  |  32%
+  |                                                        
+  |*****************                                 |  34%
+  |                                                        
+  |******************                                |  36%
+  |                                                        
+  |*******************                               |  38%
+  |                                                        
+  |********************                              |  40%
+  |                                                        
+  |*********************                             |  42%
+  |                                                        
+  |**********************                            |  44%
+  |                                                        
+  |***********************                           |  46%
+  |                                                        
+  |************************                          |  48%
+  |                                                        
+  |*************************                         |  50%
+  |                                                        
+  |**************************                        |  52%
+  |                                                        
+  |***************************                       |  54%
+  |                                                        
+  |****************************                      |  56%
+  |                                                        
+  |*****************************                     |  58%
+  |                                                        
+  |******************************                    |  60%
+  |                                                        
+  |*******************************                   |  62%
+  |                                                        
+  |********************************                  |  64%
+  |                                                        
+  |*********************************                 |  66%
+  |                                                        
+  |**********************************                |  68%
+  |                                                        
+  |***********************************               |  70%
+  |                                                        
+  |************************************              |  72%
+  |                                                        
+  |*************************************             |  74%
+  |                                                        
+  |**************************************            |  76%
+  |                                                        
+  |***************************************           |  78%
+  |                                                        
+  |****************************************          |  80%
+  |                                                        
+  |*****************************************         |  82%
+  |                                                        
+  |******************************************        |  84%
+  |                                                        
+  |*******************************************       |  86%
+  |                                                        
+  |********************************************      |  88%
+  |                                                        
+  |*********************************************     |  90%
+  |                                                        
+  |**********************************************    |  92%
+  |                                                        
+  |***********************************************   |  94%
+  |                                                        
+  |************************************************  |  96%
+  |                                                        
+  |************************************************* |  98%
+  |                                                        
+  |**************************************************| 100%
+> plot(best_posterior)
+> Question
+Looking at the plot, we see that the mutant zombie data point has made BEST more uncertain to some degree. But since BEST is robust to outliers, it still estimates that brain-eating zombies are more likely to have a higher IQ than zombies on a regular diet.
+
+What conclusion should we draw?
+Possible Answers
+There is zero evidence that eating brains make zombies smarter.
+There is strong evidence that eating brains make zombies smarter.
+There is weak evidence that eating brains make zombies smarter. And we should be better at screening for mutant zombies when doing experiments.
+
